@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/giapha-ho-phan/static/css/main.e6c13ad2.css",
+    "main.js": "/giapha-ho-phan/static/js/main.45b2e29c.js",
+    "static/js/453.e6f1b989.chunk.js": "/giapha-ho-phan/static/js/453.e6f1b989.chunk.js",
+    "index.html": "/giapha-ho-phan/index.html",
+    "main.e6c13ad2.css.map": "/giapha-ho-phan/static/css/main.e6c13ad2.css.map",
+    "main.45b2e29c.js.map": "/giapha-ho-phan/static/js/main.45b2e29c.js.map",
+    "453.e6f1b989.chunk.js.map": "/giapha-ho-phan/static/js/453.e6f1b989.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.45b2e29c.js"
+  ]
+}
