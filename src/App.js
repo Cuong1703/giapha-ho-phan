@@ -566,8 +566,50 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
   const [parentId, setParentId] = useState("");
   const [spouseId, setSpouseId] = useState("");
   const [note, setNote] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
+  const photoInputRef = useRef(null);
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setUploadError("Chỉ hỗ trợ JPG, PNG, WEBP"); return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError("Ảnh tối đa 2MB"); return;
+    }
+
+    setUploadError("");
+
+    // Hiện preview ngay
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    // Upload lên Supabase Storage luôn (lưu vào thư mục pending/)
+    setUploading(true);
+    try {
+      const tempId = uuidv4();
+      const ext = file.name.split(".").pop();
+      const path = `pending/${tempId}.${ext}`;
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setPhotoUrl(data.publicUrl);
+    } catch (err) {
+      setUploadError("Upload ảnh thất bại: " + err.message);
+      setPhotoPreview(null);
+    }
+    setUploading(false);
+  };
 
   const handleSubmit = async () => {
     if (!fullName.trim() || saving) return;
@@ -587,7 +629,7 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
       generation,
       birth_place: birthPlace.trim() || null,
       occupation: null, phone: null, email: null, burial_place: null,
-      note: note.trim() || null, photo_url: null,
+      note: note.trim() || null, photo_url: photoUrl || null,
     };
 
     await onSubmitAdd(newPerson, parentId || null, spouseId || null);
@@ -597,6 +639,7 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
       : `✓ Đã gửi yêu cầu thêm "${newPerson.full_name}". Chờ quản lý duyệt.`);
     setFullName(""); setBirthYear(""); setDeathYear(""); setIsDeceased(false);
     setBirthPlace(""); setParentId(""); setSpouseId(""); setNote("");
+    setPhotoUrl(""); setPhotoPreview(null); setUploadError("");
     setSaving(false);
     setTimeout(() => setSuccess(""), 4000);
   };
@@ -647,6 +690,90 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
         <label style={labelStyle}>Vợ / Chồng (nếu có)</label>
         <PersonPicker persons={allPersons} value={spouseId} onChange={setSpouseId} placeholder="Tìm tên vợ/chồng..." />
       </div>
+      {/* ── UPLOAD ẢNH ── */}
+      <div style={fieldWrap}>
+        <label style={labelStyle}>🖼️ Ảnh đại diện</label>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+          {/* Preview */}
+          <div style={{
+            width: 64, height: 64, borderRadius: "50%", flexShrink: 0,
+            background: "#1a3a5c", border: "2px solid #3a5680",
+            overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {photoPreview ? (
+              <img src={photoPreview} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <span style={{ fontSize: 26, color: "#6f84ac" }}>👤</span>
+            )}
+          </div>
+
+          {/* Nút chọn ảnh */}
+          <div style={{ flex: 1 }}>
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploading}
+              style={{
+                display: "block", width: "100%", padding: "9px 0",
+                background: uploading ? "#3a5680" : "#1a2e4e",
+                color: uploading ? "#6f84ac" : "#e6a23c",
+                border: "1px solid #3a5680", borderRadius: 8,
+                fontSize: 13, fontWeight: 600,
+                cursor: uploading ? "not-allowed" : "pointer",
+                marginBottom: 5,
+              }}
+            >
+              {uploading ? "⏳ Đang tải ảnh..." : photoPreview ? "🔄 Đổi ảnh khác" : "📁 Chọn ảnh từ máy"}
+            </button>
+            <input
+              ref={photoInputRef} type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handlePhotoSelect}
+              style={{ display: "none" }}
+            />
+            <div style={{ fontSize: 10, color: "#6f84ac" }}>
+              JPG, PNG, WEBP · Tối đa 2MB · Không bắt buộc
+            </div>
+          </div>
+
+          {/* Nút xóa ảnh */}
+          {photoPreview && (
+            <button
+              onClick={() => { setPhotoPreview(null); setPhotoUrl(""); setUploadError(""); }}
+              style={{
+                width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                background: "#3a1a1a", border: "1px solid #f0a8a8",
+                color: "#f0a8a8", fontSize: 14, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              title="Xóa ảnh"
+            >✕</button>
+          )}
+        </div>
+
+        {/* Thông báo lỗi */}
+        {uploadError && (
+          <div style={{ fontSize: 12, color: "#f0a8a8", marginBottom: 6 }}>
+            ⚠️ {uploadError}
+          </div>
+        )}
+
+        {/* Thông báo upload thành công */}
+        {photoUrl && !uploading && (
+          <div style={{ fontSize: 11, color: "#a8e6c0", marginBottom: 4 }}>
+            ✅ Ảnh đã được tải lên, sẽ hiển thị sau khi được duyệt.
+          </div>
+        )}
+
+        {/* Không phải admin thì hiện ghi chú */}
+        {!isAdmin && (
+          <div style={{ fontSize: 11, color: "#6f84ac", fontStyle: "italic" }}>
+            💡 Ảnh sẽ được hiển thị sau khi quản lý duyệt yêu cầu.
+          </div>
+        )}
+      </div>
+
+      {/* ── GHI CHÚ ── */}
       <div style={fieldWrap}>
         <label style={labelStyle}>Ghi chú / Tiểu sử</label>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
