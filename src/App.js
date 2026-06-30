@@ -1163,6 +1163,62 @@ export default function GiaPhaHoPhan() {
         <p style={{ margin: "6px 0 14px", fontSize: 12, color: "#a89060" }}>
           Ông Cố: Phan Tấn Liêu (1880–1955) · Thăng Phước
         </p>
+               {/* LỜI NÓI ĐẦU */}
+        <div style={{
+          margin: "14px auto 16px", maxWidth: 620, padding: "16px 20px",
+          background: "rgba(0,0,0,0.3)", borderRadius: 12,
+          border: "1px solid #b8860b66",
+          fontSize: 12.5, color: "#d4b896",
+          lineHeight: 1.9, textAlign: "center",
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#e6a23c", marginBottom: 10, fontFamily: "'Noto Serif', serif", letterSpacing: 1 }}>
+            🙏 KÍNH BÁI LIỆT VỊ TIÊN TỔ HỌ PHAN 🙏
+          </div>
+
+          <div style={{ fontStyle: "italic", marginBottom: 10 }}>
+            Cây có gốc mới nảy cành xanh lá,<br/>
+            nước có nguồn mới chảy mãi không vơi.<br/>
+            Con người có tổ tiên mới sinh sôi nảy nở,<br/>
+            đời đời nối tiếp, dòng họ trường tồn.
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            Họ Phan chúng ta bắt nguồn từ{" "}
+            <strong style={{ color: "#e6a23c" }}>Ông Cố Phan Tấn Liêu</strong>{" "}
+            — sinh năm 1880, an táng tại Thăng Phước, Quảng Nam —
+            người đã dày công vun đắp nên một dòng tộc
+            trải qua <strong style={{ color: "#e6a23c" }}>sáu đời</strong>,
+            với hàng trăm con cháu nay định cư
+            khắp mọi miền đất nước và hải ngoại.
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            Trang Gia Phả Họ Phan được lập nên với mong muốn:<br/>
+            <span style={{ color: "#e6a23c" }}>①</span> Lưu giữ tên tuổi, năm sinh, năm mất của từng thành viên<br/>
+            <span style={{ color: "#e6a23c" }}>②</span> Kết nối con cháu dù ở bất cứ nơi đâu<br/>
+            <span style={{ color: "#e6a23c" }}>③</span> Nhắc nhở thế hệ sau luôn nhớ về cội nguồn
+          </div>
+
+          <div style={{ fontStyle: "italic", marginBottom: 14, color: "#c8a86a" }}>
+            Kính mong toàn thể con cháu Họ Phan giữ gìn<br/>
+            và bổ sung thêm thông tin để trang gia phả<br/>
+            ngày càng đầy đủ và hoàn thiện hơn.<br/>
+            <strong>Nam mô A Di Đà Phật 🙏</strong>
+          </div>
+
+          <div style={{
+            fontSize: 11, color: "#a89060",
+            borderTop: "1px solid #b8860b44", paddingTop: 10,
+            display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap",
+          }}>
+            <span>📞 Liên hệ quản lý:
+              <strong style={{ color: "#e6a23c", marginLeft: 4 }}>0862 866 351</strong>
+            </span>
+            <span>✉️
+              <strong style={{ color: "#e6a23c", marginLeft: 4 }}>dinhcuongbk10ktt@gmail.com</strong>
+            </span>
+          </div>
+        </div> 
         <SearchBar persons={persons} onJump={expandPathTo} />
       </div>
 
