@@ -40,7 +40,23 @@ function getTreeData(personId, personsMap, adj) {
     children: adj.childrenByPersonId.get(personId) || [],
   };
 }
+// ─── UPLOAD ẢNH LÊN SUPABASE STORAGE ────────────────────────────────────────
+async function uploadAvatar(file, personId) {
+  const ext = file.name.split(".").pop();
+  const path = `${personId}.${ext}`;
 
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
 function uuidv4() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -658,6 +674,120 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
     </div>
   );
 }
+// ─── UPLOAD AVATAR ────────────────────────────────────────────────────────────
+function UploadAvatar({ personId, currentUrl, onUploaded, isAdmin }) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(currentUrl || null);
+  const [error, setError] = useState("");
+  const inputRef = useRef(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Kiểm tra định dạng
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Chỉ hỗ trợ ảnh JPG, PNG, WEBP"); return;
+    }
+
+    // Kiểm tra dung lượng (tối đa 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Ảnh tối đa 2MB"); return;
+    }
+
+    setUploading(true); setError("");
+
+    // Preview trước khi upload
+    const reader = new FileReader();
+    reader.onload = (ev) => setPreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    try {
+      const url = await uploadAvatar(file, personId);
+      onUploaded(url);
+    } catch (err) {
+      setError("Upload thất bại: " + err.message);
+      setPreview(currentUrl || null);
+    }
+
+    setUploading(false);
+  };
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={labelStyle}>🖼️ Ảnh đại diện</label>
+
+      {/* Preview ảnh */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: "50%", flexShrink: 0,
+          background: preview ? "none" : "#1a3a5c",
+          border: "2px solid #3a5680", overflow: "hidden",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {preview ? (
+            <img src={preview} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <span style={{ fontSize: 28, color: "#6f84ac" }}>👤</span>
+          )}
+        </div>
+
+        <div style={{ flex: 1 }}>
+          {isAdmin ? (
+            <>
+              <button
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                  display: "block", width: "100%", padding: "9px 0",
+                  background: uploading ? "#3a5680" : "#1a2e4e",
+                  color: uploading ? "#6f84ac" : "#e6a23c",
+                  border: "1px solid #e6a23c", borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, cursor: uploading ? "not-allowed" : "pointer",
+                  marginBottom: 6,
+                }}
+              >
+                {uploading ? "⏳ Đang upload..." : "📁 Chọn ảnh từ máy tính"}
+              </button>
+              <input
+                ref={inputRef} type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFile}
+                style={{ display: "none" }}
+              />
+              <div style={{ fontSize: 10, color: "#6f84ac" }}>
+                Hỗ trợ: JPG, PNG, WEBP · Tối đa 2MB
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: "#6f84ac", fontStyle: "italic" }}>
+              Chỉ quản lý mới có thể thay đổi ảnh đại diện.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Hoặc nhập URL */}
+      {isAdmin && (
+        <div>
+          <div style={{ fontSize: 11, color: "#6f84ac", marginBottom: 4 }}>
+            Hoặc nhập URL ảnh từ internet:
+          </div>
+          <input
+            value={preview && preview.startsWith("http") ? preview : ""}
+            onChange={(e) => { setPreview(e.target.value); onUploaded(e.target.value); }}
+            placeholder="https://..."
+            style={inputStyle}
+          />
+        </div>
+      )}
+
+      {error && (
+        <div style={{ marginTop: 6, fontSize: 12, color: "#f0a8a8" }}>⚠️ {error}</div>
+      )}
+    </div>
+  );
+}
 
 // ─── FORM SỬA THÔNG TIN ──────────────────────────────────────────────────────
 
@@ -727,11 +857,18 @@ function EditPersonForm({ allPersons, onSubmitUpdate, editingPerson, setEditingP
           </button>
         </div>
       </div>
+      {/* UPLOAD ẢNH */}
+      <UploadAvatar
+        personId={person.id}
+        currentUrl={fields.photo_url || ""}
+        onUploaded={(url) => setField("photo_url", url)}
+        isAdmin={isAdmin}
+      />
+
       {[
         ["📍 Nơi sinh / sống", "birth_place", "VD: Thăng Phước, Quảng Nam"],
         ["💼 Nghề nghiệp", "occupation", "VD: Giáo viên"],
         ["⚰️ Nơi an táng / mộ phần", "burial_place", "VD: Nghĩa trang gia tộc"],
-        ["🖼️ Ảnh đại diện (URL)", "photo_url", "https://..."],
       ].map(([label, key, placeholder]) => (
         <div key={key} style={fieldWrap}>
           <label style={labelStyle}>{label}</label>
