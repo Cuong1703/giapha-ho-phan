@@ -983,6 +983,7 @@ function EditPersonForm({ allPersons, onSubmitUpdate, editingPerson, setEditingP
   useEffect(() => {
     if (person) {
       setFields({
+        full_name: person.full_name || "",
         birth_place: person.birth_place || "",
         birth_date: person.birth_date || "",
         death_date: person.death_date || "",
@@ -1009,9 +1010,20 @@ function EditPersonForm({ allPersons, onSubmitUpdate, editingPerson, setEditingP
   const setField = (key, val) => setFields((prev) => ({ ...prev, [key]: val }));
 
   const handleSave = async () => {
+    if (!fields.full_name?.trim()) {
+      alert("Họ và tên không được để trống!"); return;
+    }
     setSaving(true);
     const cleaned = {};
-    Object.entries(fields).forEach(([k, v]) => { cleaned[k] = v.trim() ? v.trim() : null; });
+    Object.entries(fields).forEach(([k, v]) => {
+      cleaned[k] = typeof v === "string" && v.trim() ? v.trim() : (v || null);
+    });
+    // Đảm bảo full_name không null
+    if (!cleaned.full_name) {
+      setSaving(false);
+      alert("Họ và tên không được để trống!");
+      return;
+    }
     await onSubmitUpdate(person.id, cleaned, person.full_name);
     setSuccess(isAdmin
       ? `✓ Đã lưu thông tin cho "${person.full_name}"!`
@@ -1039,6 +1051,21 @@ function EditPersonForm({ allPersons, onSubmitUpdate, editingPerson, setEditingP
             Đổi
           </button>
         </div>
+      </div>
+      {/* TÊN */}
+      <div style={fieldWrap}>
+        <label style={labelStyle}>👤 Họ và tên</label>
+        <input
+          value={fields.full_name || ""}
+          onChange={(e) => setField("full_name", e.target.value)}
+          placeholder="VD: Phan Văn An"
+          style={inputStyle}
+        />
+        {!isAdmin && (
+          <div style={{ fontSize: 10, color: "#6f84ac", marginTop: 4 }}>
+            💡 Yêu cầu đổi tên sẽ chờ quản lý duyệt
+          </div>
+        )}
       </div>
       {/* UPLOAD ẢNH */}
       <UploadAvatar
