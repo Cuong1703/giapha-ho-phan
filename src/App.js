@@ -232,8 +232,14 @@ function NodeCard({ person, role, isRing, isPlus, onSelect, isHighlighted }) {
       </span>
 
       <span style={{ fontSize: 9, color: "#6f84ac", fontFamily: "monospace" }}>
-        {person.birth_year || "?"}
-        {person.is_deceased && person.death_year ? `–${person.death_year}` : ""}
+        {person.birth_date
+          ? new Date(person.birth_date).getFullYear()
+          : (person.birth_year || "?")}
+        {person.is_deceased && (person.death_date || person.death_year)
+          ? `–${person.death_date
+              ? new Date(person.death_date).getFullYear()
+              : person.death_year}`
+          : ""}
       </span>
 
       {role && <span style={{ fontSize: 9, color: "#f0a8c4", fontWeight: 600 }}>{role}</span>}
@@ -312,10 +318,22 @@ function TreeNode({ personId, personsMap, adj, collapsedNodes, toggleCollapse, o
 function PersonModal({ person, onClose, onEdit }) {
   if (!person) return null;
   const isMale = person.gender === "male";
+  const fmtDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  };
+
   const basicFields = [
     ["Giới tính", isMale ? "Nam" : person.gender === "female" ? "Nữ" : "Khác"],
-    ["Năm sinh", person.birth_year ?? "Không rõ"],
-    ["Năm mất", person.is_deceased ? (person.death_year ?? "Không rõ") : "Còn sống"],
+    ["Ngày sinh", person.birth_date
+      ? fmtDate(person.birth_date)
+      : person.birth_year ? `Năm ${person.birth_year}` : "Không rõ"],
+    ["Ngày mất", person.is_deceased
+      ? (person.death_date
+          ? fmtDate(person.death_date)
+          : person.death_year ? `Năm ${person.death_year}` : "Không rõ")
+      : "Còn sống"],
     ["Thế hệ", person.generation ? `Đời ${person.generation}` : "—"],
   ];
   const extraFields = [
@@ -563,6 +581,8 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
   const [deathYear, setDeathYear] = useState("");
   const [isDeceased, setIsDeceased] = useState(false);
   const [birthPlace, setBirthPlace] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [deathDate, setDeathDate] = useState("");
   const [parentId, setParentId] = useState("");
   const [spouseId, setSpouseId] = useState("");
   const [note, setNote] = useState("");
@@ -628,6 +648,8 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
       is_deceased: isDeceased,
       generation,
       birth_place: birthPlace.trim() || null,
+      birth_date: birthDate || null,
+      death_date: isDeceased && deathDate ? deathDate : null,
       occupation: null, phone: null, email: null, burial_place: null,
       note: note.trim() || null, photo_url: photoUrl || null,
     };
@@ -638,7 +660,7 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
       ? `✓ Đã thêm "${newPerson.full_name}" vào gia phả!`
       : `✓ Đã gửi yêu cầu thêm "${newPerson.full_name}". Chờ quản lý duyệt.`);
     setFullName(""); setBirthYear(""); setDeathYear(""); setIsDeceased(false);
-    setBirthPlace(""); setParentId(""); setSpouseId(""); setNote("");
+    setBirthPlace(""); setParentId(""); setSpouseId(""); setNote(""); setBirthDate(""); setDeathDate("");
     setPhotoUrl(""); setPhotoPreview(null); setUploadError("");
     setSaving(false);
     setTimeout(() => setSuccess(""), 4000);
@@ -669,13 +691,49 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
           <input value={birthYear} onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, ""))} placeholder="VD: 1995" style={inputStyle} />
         </div>
       </div>
+
+      {/* NGÀY SINH CỤ THỂ */}
+      <div style={fieldWrap}>
+        <label style={labelStyle}>📅 Ngày sinh cụ thể (nếu biết)</label>
+        <input
+          type="date"
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
+          style={{
+            ...inputStyle,
+            colorScheme: "dark",
+          }}
+        />
+        <div style={{ fontSize: 10, color: "#6f84ac", marginTop: 4 }}>
+          Nếu chỉ biết năm → điền ô "Năm sinh" bên trên, bỏ trống ô này
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ ...fieldWrap, flex: 1 }}>
+          <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+
       <div style={fieldWrap}>
         <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
           <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
           Đã mất
         </label>
         {isDeceased && (
-          <input value={deathYear} onChange={(e) => setDeathYear(e.target.value.replace(/\D/g, ""))} placeholder="Năm mất" style={{ ...inputStyle, marginTop: 6 }} />
+          <div style={{ marginTop: 8 }}>
+            <input
+              value={deathYear}
+              onChange={(e) => setDeathYear(e.target.value.replace(/\D/g, ""))}
+              placeholder="Năm mất (VD: 2020)"
+              style={{ ...inputStyle, marginBottom: 8 }}
+            />
+            <label style={labelStyle}>📅 Ngày mất cụ thể (nếu biết)</label>
+            <input
+              type="date"
+              value={deathDate}
+              onChange={(e) => setDeathDate(e.target.value)}
+              style={{ ...inputStyle, colorScheme: "dark" }}
+            />
+          </div>
         )}
       </div>
       <div style={fieldWrap}>
@@ -930,6 +988,8 @@ function EditPersonForm({ allPersons, onSubmitUpdate, editingPerson, setEditingP
     if (person) {
       setFields({
         birth_place: person.birth_place || "",
+        birth_date: person.birth_date || "",
+        death_date: person.death_date || "",
         occupation: person.occupation || "",
         phone: person.phone || "",
         email: person.email || "",
@@ -991,6 +1051,29 @@ function EditPersonForm({ allPersons, onSubmitUpdate, editingPerson, setEditingP
         onUploaded={(url) => setField("photo_url", url)}
         isAdmin={isAdmin}
       />
+      {/* NGÀY SINH */}
+      <div style={fieldWrap}>
+        <label style={labelStyle}>📅 Ngày sinh cụ thể</label>
+        <input
+          type="date"
+          value={fields.birth_date || ""}
+          onChange={(e) => setField("birth_date", e.target.value)}
+          style={{ ...inputStyle, colorScheme: "dark" }}
+        />
+      </div>
+
+      {/* NGÀY MẤT */}
+      {person.is_deceased && (
+        <div style={fieldWrap}>
+          <label style={labelStyle}>📅 Ngày mất cụ thể</label>
+          <input
+            type="date"
+            value={fields.death_date || ""}
+            onChange={(e) => setField("death_date", e.target.value)}
+            style={{ ...inputStyle, colorScheme: "dark" }}
+          />
+        </div>
+      )}
 
       {[
         ["📍 Nơi sinh / sống", "birth_place", "VD: Thăng Phước, Quảng Nam"],
