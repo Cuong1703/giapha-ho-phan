@@ -709,10 +709,6 @@ function AddPersonForm({ allPersons, onSubmitAdd, isAdmin }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <div style={{ ...fieldWrap, flex: 1 }}>
-          <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-
       <div style={fieldWrap}>
         <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
           <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
